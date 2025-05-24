@@ -12,8 +12,10 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ${ROOT}/config/sonarr:/config # config files
-      - ${ROOT}/complete/tv:/tv # tv shows folder
-      - ${ROOT}/downloads:/downloads # download folder
+      - /media/TVShows:/media/TVShows # tv shows folder
+      - ${ROOT}/downloads:/media/downloads # download folder
+      - ${ROOT}/complete:/media/complete/tv
+      - ${ROOT}/complete:/media/complete/movies
     ports:
       - 8989:8989
 
@@ -29,8 +31,9 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ${ROOT}/config/radarr:/config # config files
-      - ${ROOT}/complete/movies:/movies # movies folder
-      - ${ROOT}/downloads:/downloads # download folder
+      - /media/Movies:/media/Movies # movies folder
+      - ${ROOT}/downloads:/media/downloads # download folder
+      - ${ROOT}/complete:/media/complete/movies
     ports:
       - 7878:7878
       
@@ -46,7 +49,7 @@ services:
     volumes:
       - ${ROOT}/downloads:/downloads # downloads folder
       - ${ROOT}/config/deluge:/config # config files
-    
+      
   qbittorrent-nox:
     # for debugging
     #cap_add:
@@ -55,16 +58,18 @@ services:
     network_mode: service:vpn # run on the vpn network
     environment:
       #- PAGID=10000
-      - PGID=1000
-      - PUID=1000
-     # - QBT_LEGAL_NOTICE=
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - QBT_LEGAL_NOTICE=confirm
       - QBT_WEBUI_PORT=8080
       - TZ=${TZ}
       - UMASK=022
     image: qbittorrentofficial/qbittorrent-nox:latest
     volumes:
       - ${ROOT}/config/qbittorrent:/config
-      - ${ROOT}/downloads:/downloads # downloads folder  
+      - ${ROOT}/downloads:/media/downloads # downloads folder 
+     # - ${ROOT}/complete:/media/complete/tv
+      #- ${ROOT}/complete:/media/complete/movies
     
   vpn:
     container_name: vpn
@@ -76,12 +81,12 @@ services:
       - /dev/net/tun:/dev/net/tun
     volumes:
       - /dev/net:/dev/net:z # tun device
-      - ${ROOT}/config/vpn:/vpn # OpenVPN configuration
+      - ${ROOT}/config/vpn:/vpn # OpenVPN configuration (put ovpn file and secrets file here)
     security_opt:
       - label:disable
     ports:
       - 8112:8112 # port for deluge web UI to be reachable from local network
-      - 8080:8080
+      - 8080:8080 #port fore qbittorrent-nox
     command: '-f "" -r 192.168.1.0/24,10.0.0.0/16' # enable firewall and route local network traffic
 
     
@@ -89,8 +94,8 @@ services:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
     volumes:
       - ${ROOT}/config/prowlarr/data:/config
@@ -114,14 +119,14 @@ services:
     image: lscr.io/linuxserver/jackett:latest
     container_name: jackett
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
       - AUTO_UPDATE=true #optional
       #- RUN_OPTS= #optional
     volumes:
       - ${ROOT}/config/jackett/data:/config
-      - /path/to/blackhole:/downloads
+      
     ports:
       - 9117:9117
     restart: unless-stopped
@@ -131,8 +136,8 @@ services:
     image: lscr.io/linuxserver/jellyfin:latest
     container_name: jellyfin
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${PUID}
+      - PGID=${PGID}
       - TZ=${TZ}
      # - JELLYFIN_PublishedServerUrl=http://192.168.0.5 #optional
     volumes:
@@ -145,3 +150,126 @@ services:
       - 7359:7359/udp #optional
       - 1900:1900/udp #optional
     restart: unless-stopped
+    
+  cleanuperr:
+    image: ghcr.io/flmorg/cleanuperr:latest
+    restart: unless-stopped
+    volumes:
+      # if you want persistent logs
+      - ./cleanuperr/logs:/var/logs
+      # if you want to ignore certain downloads from being processed
+      #- ./cleanuperr/ignored.txt:/ignored.txt
+      # if you're using cross-seed and the hardlinks functionality
+      #- ./downloads:/downloads
+      
+    environment:
+        
+      - TZ=America/New_York
+      - DRY_RUN=false
+      - HTTP_MAX_RETRIES=0
+      - HTTP_TIMEOUT=100
+      - HTTP_VALIDATE_CERT=disabled
+      
+      - LOGGING__LOGLEVEL=Information
+      - LOGGING__FILE__ENABLED=false
+      - LOGGING__FILE__PATH=/var/logs/
+      - LOGGING__ENHANCED=true
+      
+      - SEARCH_ENABLED=true
+      - SEARCH_DELAY=30
+      
+      - TRIGGERS__QUEUECLEANER=0 0/5 * * * ?
+      - QUEUECLEANER__ENABLED=true
+      - QUEUECLEANER__IGNORED_DOWNLOADS_PATH=/ignored.txt
+      - QUEUECLEANER__RUNSEQUENTIALLY=true
+      
+      - QUEUECLEANER__IMPORT_FAILED_MAX_STRIKES=5
+      - QUEUECLEANER__IMPORT_FAILED_IGNORE_PRIVATE=false
+      - QUEUECLEANER__IMPORT_FAILED_DELETE_PRIVATE=false
+      - QUEUECLEANER__IMPORT_FAILED_IGNORE_PATTERNS__0=title mismatch
+      - QUEUECLEANER__IMPORT_FAILED_IGNORE_PATTERNS__1=manual import required
+      
+      - QUEUECLEANER__STALLED_MAX_STRIKES=5
+      - QUEUECLEANER__STALLED_RESET_STRIKES_ON_PROGRESS=true
+      - QUEUECLEANER__STALLED_IGNORE_PRIVATE=false
+      - QUEUECLEANER__STALLED_DELETE_PRIVATE=false
+      - QUEUECLEANER__DOWNLOADING_METADATA_MAX_STRIKES=5
+      
+      - QUEUECLEANER__SLOW_MAX_STRIKES=5
+      - QUEUECLEANER__SLOW_RESET_STRIKES_ON_PROGRESS=true
+      - QUEUECLEANER__SLOW_IGNORE_PRIVATE=false
+      - QUEUECLEANER__SLOW_DELETE_PRIVATE=false
+      - QUEUECLEANER__SLOW_MIN_SPEED=1MB
+      - QUEUECLEANER__SLOW_MAX_TIME=20
+      - QUEUECLEANER__SLOW_IGNORE_ABOVE_SIZE=60GB
+      
+      - TRIGGERS__CONTENTBLOCKER=0 0/5 * * * ?
+      - CONTENTBLOCKER__ENABLED=true
+      - CONTENTBLOCKER__IGNORED_DOWNLOADS_PATH=/ignored.txt
+      - CONTENTBLOCKER__IGNORE_PRIVATE=false
+      - CONTENTBLOCKER__DELETE_PRIVATE=false
+      
+      - TRIGGERS__DOWNLOADCLEANER=0 0 * * * ?
+      - DOWNLOADCLEANER__ENABLED=true
+      - DOWNLOADCLEANER__IGNORED_DOWNLOADS_PATH=/ignored.txt
+      - DOWNLOADCLEANER__DELETE_PRIVATE=false
+      
+      - DOWNLOADCLEANER__CATEGORIES__0__NAME=tv-sonarr
+      - DOWNLOADCLEANER__CATEGORIES__0__MAX_RATIO=1
+      - DOWNLOADCLEANER__CATEGORIES__0__MIN_SEED_TIME=0
+      - DOWNLOADCLEANER__CATEGORIES__0__MAX_SEED_TIME=240
+      - DOWNLOADCLEANER__CATEGORIES__1__NAME=radarr
+      - DOWNLOADCLEANER__CATEGORIES__1__MAX_RATIO=1
+      - DOWNLOADCLEANER__CATEGORIES__1__MIN_SEED_TIME=0
+      - DOWNLOADCLEANER__CATEGORIES__1__MAX_SEED_TIME=240
+      - DOWNLOADCLEANER__CATEGORIES__2__NAME=cleanuperr-unlinked
+      - DOWNLOADCLEANER__CATEGORIES__2__MAX_RATIO=1
+      - DOWNLOADCLEANER__CATEGORIES__2__MIN_SEED_TIME=0
+      - DOWNLOADCLEANER__CATEGORIES__2__MAX_SEED_TIME=240
+      
+      - DOWNLOADCLEANER__UNLINKED_TARGET_CATEGORY=cleanuperr-unlinked
+      - DOWNLOADCLEANER__UNLINKED_USE_TAG=false
+      - DOWNLOADCLEANER__UNLINKED_IGNORED_ROOT_DIR=/downloads
+      - DOWNLOADCLEANER__UNLINKED_CATEGORIES__0=tv-sonarr
+      - DOWNLOADCLEANER__UNLINKED_CATEGORIES__1=radarr
+      
+      #- DOWNLOAD_CLIENT=none
+      # OR
+      # - DOWNLOAD_CLIENT=disabled
+      # OR          
+      - DOWNLOAD_CLIENT=qBittorrent
+      - QBITTORRENT__URL=http://localhost:8080
+      - QBITTORRENT__URL_BASE=/mnt/tv3/downloading/temp/
+      - QBITTORRENT__USERNAME=don
+      - QBITTORRENT__PASSWORD=
+      # OR
+      # - DOWNLOAD_CLIENT=deluge
+      # - DELUGE__URL=http://localhost:8112
+      # - DELUGE__URL_BASE=myCustomPath
+      # - DELUGE__PASSWORD=pass
+      # OR
+      # - DOWNLOAD_CLIENT=transmission
+      # - TRANSMISSION__URL=http://localhost:9091
+      # - TRANSMISSION__URL_BASE=myCustomPath
+      # - TRANSMISSION__USERNAME=user
+      # - TRANSMISSION__PASSWORD=pass
+      
+      - SONARR__ENABLED=true
+      - SONARR__IMPORT_FAILED_MAX_STRIKES=-1
+      - SONARR__SEARCHTYPE=Episode
+      - SONARR__BLOCK__TYPE=blacklist
+      #- SONARR__BLOCK__PATH=https://example.com/path/to/file.txt
+      - SONARR__INSTANCES__0__URL=http://localhost:8989
+      - SONARR__INSTANCES__0__APIKEY=0e261f1eae9f4e958e9b8ab4909749c2
+      #- SONARR__INSTANCES__1__URL=http://localhost:8990
+      #- SONARR__INSTANCES__1__APIKEY=sonarrSecret2
+      
+      - RADARR__ENABLED=true
+      - RADARR__IMPORT_FAILED_MAX_STRIKES=-1
+      - RADARR__BLOCK__TYPE=blacklist
+      #- RADARR__BLOCK__PATH=https://example.com/path/to/file.txt
+      - RADARR__INSTANCES__0__URL=http://localhost:7878
+      - RADARR__INSTANCES__0__APIKEY=3f43df0ad8b942f2acb016243e95c8a7
+      #- RADARR__INSTANCES__1__URL=http://localhost:7879
+      #- RADARR__INSTANCES__1__APIKEY=radarrSecret2
+         
