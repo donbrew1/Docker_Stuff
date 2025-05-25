@@ -32,7 +32,7 @@ services:
       - PGID=${PGID} # default group id, defined in .env
       - TZ=${TZ} # timezone, defined in .env
     volumes:
-      - ${ROOT}/downloads:/downloads # downloads folder
+      - ${ROOT}/downloads/temp:/downloads/temp # downloads folder
       - ${ROOT}/config/deluge:/config # config files
 
   qbittorrent:
@@ -48,7 +48,7 @@ services:
       - WEBUI_PORT=8080
     volumes:
       - ${ROOT}/config/qbittorrent:/config
-      - ${ROOT}/downloads:/media/downloads # downloads folder 
+      - ${ROOT}/downloads/temp:/media/downloads/temp # downloads folder 
     restart: unless-stopped
 
 
@@ -79,8 +79,8 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ${ROOT}/config/sonarr:${ROOT}/config/sonarr # config files
       - /media/TVShows:/media/TVShows # tv shows folder
-      - ${ROOT}/downloads:/media/downloads # download folder
-      - ${ROOT}/complete:/media/complete/tv
+      - ${ROOT}/downloads:/media/downloads/temp # download folder
+      - ${ROOT}/complete:/media/downloads/sonarr
     ports:
       - 8989:8989 # sonarr
          
@@ -97,8 +97,8 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ${ROOT}/config/radarr:/media/config/radarr # config files
       - ${ROOT}/Movies:/media/Movies # movies folder
-      - ${ROOT}/downloads:/media/downloads # download folder
-      - ${ROOT}/complete:/media/complete/movies
+      - ${ROOT}/downloads:/media/downloads/temp # download folder
+      - ${ROOT}/complete:/media/downloads/radarr
     ports:
       - 7878:7878 # radar\
 
