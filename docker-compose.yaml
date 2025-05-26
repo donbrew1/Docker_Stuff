@@ -9,22 +9,20 @@ services:
       - /dev/net/tun:/dev/net/tun
     volumes:
       - /dev/net:/dev/net:z # tun device
-      - ${ROOT}/config/vpn:/media/config/vpn # OpenVPN configuration
+      - ${ROOT}/config/vpn:/vpn # OpenVPN configuration
     security_opt:
       - label:disable
     ports:
       - 8112:8112 # port for deluge web UI to be reachable from local networ
       - 8080:8080 # qbittorrent 
-      - 9117:9117 # jacket
-     
+      #- 9117:9117 # jacket    
     command: '-f "" -r 192.168.1.0/24' # enable firewall and route local network traffic
-
-
+    
   deluge:
     container_name: deluge
     image: linuxserver/deluge:latest
-    depends_on: 
-     - vpn   
+   # depends_on: 
+    # - vpn   
     restart: unless-stopped
     network_mode: service:vpn # run on the vpn network
     environment:
@@ -32,14 +30,14 @@ services:
       - PGID=${PGID} # default group id, defined in .env
       - TZ=${TZ} # timezone, defined in .env
     volumes:
-      - ${ROOT}/downloads/temp:/downloads/temp # downloads folder
+      - ${ROOT}/downloads/temp:/temp # downloads folder
       - ${ROOT}/config/deluge:/config # config files
 
   qbittorrent:
     container_name: qbittorrent
     image: lscr.io/linuxserver/qbittorrent:latest
-    depends_on: 
-      - vpn
+    #depends_on: 
+     # - vpn
     network_mode: service:vpn
     environment:
       - PUID=${PUID} # default user id, defined in .env
@@ -48,7 +46,7 @@ services:
       - WEBUI_PORT=8080
     volumes:
       - ${ROOT}/config/qbittorrent:/config
-      - ${ROOT}/downloads/temp:/media/downloads/temp # downloads folder 
+      - ${ROOT}/downloads/temp:/temp # downloads folder 
     restart: unless-stopped
 
 
@@ -56,7 +54,7 @@ services:
     container_name: jackett
     image: linuxserver/jackett:latest
     restart: unless-stopped
-    network_mode: service:vpn # run on the vpn network
+   # network_mode: service:vpn # run on the vpn network
     environment:
       - PUID=${PUID} # default user id, defined in .env
       - PGID=${PGID} # default group id, defined in .env
@@ -65,7 +63,9 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ${ROOT}/downloads/torrent-blackhole:/downloads # place where to put .torrent files for manual download
       - ${ROOT}/config/jackett:/config # config files
-
+    ports:
+      - 9117:9117 # jacket 
+      
   sonarr:
     container_name: sonarr
     image: linuxserver/sonarr:latest
@@ -142,7 +142,7 @@ services:
       - /path/to/movies:/media/Movies
     ports:
       - 8096:8096
-      - 8920:8920 #optional
-      - 7359:7359/udp #optional
-      - 1900:1900/udp #optional
+   #   - 8920:8920 #optional
+    #  - 7359:7359/udp #optional
+     # - 1900:1900/udp #optional
     restart: unless-stopped       
