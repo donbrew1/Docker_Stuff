@@ -46,7 +46,8 @@ services:
       - WEBUI_PORT=8080
     volumes:
       - ${ROOT}/config/qbittorrent:/config
-      - ${ROOT}/downloads/temp:/temp # downloads folder 
+      - ${ROOT}/downloads:/media/downloads # downloads folder 
+      
     restart: unless-stopped
 
 
@@ -79,8 +80,8 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ${ROOT}/config/sonarr:${ROOT}/config/sonarr # config files
       - /media/TVShows:/media/TVShows # tv shows folder
-      - ${ROOT}/downloads:/media/downloads/temp # download folder
-      - ${ROOT}/complete:/media/downloads/sonarr
+     # - ${ROOT}/downloads:/media/downloads/temp # download folder
+      #- ${ROOT}/complete:/media/downloads/sonarr
     ports:
       - 8989:8989 # sonarr
          
@@ -97,8 +98,8 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ${ROOT}/config/radarr:/media/config/radarr # config files
       - ${ROOT}/Movies:/media/Movies # movies folder
-      - ${ROOT}/downloads:/media/downloads/temp # download folder
-      - ${ROOT}/complete:/media/downloads/radarr
+     # - ${ROOT}/downloads:/media/downloads/temp # download folder
+      #- ${ROOT}/complete:/media/downloads/radarr
     ports:
       - 7878:7878 # radar\
 
