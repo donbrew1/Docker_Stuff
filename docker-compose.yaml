@@ -32,7 +32,8 @@ services:
     volumes:
       - ${ROOT}/downloads/temp:/temp # downloads folder
       - ${ROOT}/config/deluge:/config # config files
-
+      - ${ROOT}/complete:/media/downloads/finished
+      
   qbittorrent:
     container_name: qbittorrent
     image: lscr.io/linuxserver/qbittorrent:latest
@@ -47,7 +48,7 @@ services:
     volumes:
       - ${ROOT}/config/qbittorrent:/config
       - ${ROOT}/downloads:/media/downloads # downloads folder 
-      
+      #- ${ROOT}/downloads/temp:/media/downloads/temp # downloads folder
     restart: unless-stopped
 
 
@@ -80,7 +81,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ${ROOT}/config/sonarr:${ROOT}/config/sonarr # config files
       - /media/TVShows:/media/TVShows # tv shows folder
-     # - ${ROOT}/downloads:/media/downloads/temp # download folder
+      - ${ROOT}/downloads:/media/downloads # download folder
       #- ${ROOT}/complete:/media/downloads/sonarr
     ports:
       - 8989:8989 # sonarr
@@ -99,7 +100,7 @@ services:
       - ${ROOT}/config/radarr:/media/config/radarr # config files
       - ${ROOT}/Movies:/media/Movies # movies folder
      # - ${ROOT}/downloads:/media/downloads/temp # download folder
-      #- ${ROOT}/complete:/media/downloads/radarr
+      - ${ROOT}/complete:/media/downloads/radarr
     ports:
       - 7878:7878 # radar\
 
