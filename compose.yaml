@@ -33,9 +33,9 @@ services:
       #- ${FIREWALL_VPN_INPUT_PORTS}:${FIREWALL_VPN_INPUT_PORTS} # airvpn forwarded port, pulled from .env
       - 8080:8080 # qbittorrent web interface
       - 6881:6881 # qbittorrent torrent port  
-      - 9696:9696 # prowlarr
-      - 9117:9117 # jacket 
-      - 8191:8191 # flaresolverr
+ #     - 9696:9696 # prowlarr
+#      - 9117:9117 # jacket 
+ #     - 8191:8191 # flaresolverr
     environment:
       - VPN_SERVICE_PROVIDER=purevpn
       - OPENVPN_USER=purevpn0s14142015
@@ -84,6 +84,13 @@ services:
         condition: service_healthy
         restart: true
     network_mode: service:gluetun
+    # networks:
+      # servarrnetwork:
+        # ipv4_address: 172.39.0.8
+    # ports:
+      # - 8080:8080 # qbittorrent web interface
+      # - 6881:6881 # qbittorrent torrent port  
+      
     healthcheck:
       test: ping -c 1 www.google.com || exit 1
       interval: 60s
@@ -119,9 +126,12 @@ services:
       gluetun:
         condition: service_healthy
         restart: true
-    network_mode: service:gluetun
-  #  ports:
-   #   - 9696:9696  
+ #   network_mode: service:gluetun
+    ports:
+      - 9696:9696 
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.7    
     
   jackett:
     container_name: jackett
@@ -140,10 +150,13 @@ services:
       gluetun:
         condition: service_healthy
         restart: true
-    network_mode: service:gluetun
-    # ports:
-      # - 9117:9117      
-
+ #   network_mode: service:gluetun
+    ports:
+      - 9117:9117      
+    networks:
+     servarrnetwork:
+       ipv4_address: 172.39.0.5
+        
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
@@ -194,10 +207,13 @@ services:
       gluetun:
         condition: service_healthy
         restart: true
-    network_mode: service:gluetun    
- #   ports:
-  #    - 8191:8191 # flaresolverr  
- 
+#    network_mode: service:gluetun    
+    ports:
+      - 8191:8191 # flaresolverr  
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.6
+        
   watchtower:
     container_name: watchtower
     image: containrrr/watchtower
