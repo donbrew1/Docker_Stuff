@@ -17,31 +17,38 @@ networks:
         - subnet: 172.39.0.0/24
 
 services:
-  # airvpn recommended (referral url: https://airvpn.org/?referred_by=673908)
   gluetun:
-    image: qmcgaw/gluetun
+    image: qmcgaw/gluetun:latest
     container_name: gluetun
     cap_add:
       - NET_ADMIN
     devices:
       - /dev/net/tun:/dev/net/tun # If running on an LXC see readme for more info.
-    networks:
-      servarrnetwork:
-        ipv4_address: 172.39.0.2
+    # networks:
+      # servarrnetwork:
+        # ipv4_address: 172.39.0.2
     ports:
      # - ${FIREWALL_VPN_INPUT_PORTS}:${FIREWALL_VPN_INPUT_PORTS} # airvpn forwarded port, pulled from .env
       - 8080:8080 # qbittorrent web interface
       - 6881:6881 # qbittorrent torrent port
-      - 9696:9696 # prowlarr
+     # - 9696:9696 # prowlarr
+      - 8888:8888/tcp # HTTP proxy
+      - 8388:8388/tcp # Shadowsocks
+      - 8388:8388/udp # Shadowsocks    
     environment:
-      - VPN_SERVICE_PROVIDER=purevpn
+      - UPDATER_PERIOD= 24h
+      - VPN_SERVICE_PROVIDER=custom
       - OPENVPN_USER=purevpn0s14142015
       - OPENVPN_PASSWORD=YDn9E5QRKdKwme
-      - SERVER_COUNTRIES=Belgium
-      - SERVER_REGIONS= Brussels Capital
-      - SERVER_CITIES= Brussels
-      - SERVER_HOSTNAMES=be2-auto-udp.ptoserver.com      
+  #    - PROTOCOL=udp
+      - OPENVPN_CUSTOM_CONFIG=/gluetun/NL.ovpn
+#      - SERVER_COUNTRIES=Belgium
+ #     - SERVER_REGIONS= Brussels Capital
+  #    - SERVER_CITIES= Brussels
+   #   - SERVER_HOSTNAMES=172.111.131.248 15021
+      
     volumes:
+      -  ../gluetun/NL.opvn:/gluetuncompose/gluetun/NL.ovpn:ro
       - ./gluetun:/gluetun
     # Make a '.env' file in the same directory.
     env_file:
@@ -64,7 +71,6 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
       - WEBUI_PORT=8080 # must match "qbittorrent web interface" port number in gluetun's service above
-    #  - TORRENTING_PORT=${FIREWALL_VPN_INPUT_PORTS} # airvpn forwarded port, pulled from .env
     volumes:
       - ./qbittorrent:/config
       - /data:/data
@@ -108,9 +114,9 @@ services:
     ports:
       - 8191:8191
     restart: always
-    networks:
-      servarrnetwork:
-        ipv4_address: 172.39.0.3
+    # networks:
+      # servarrnetwork:
+        # ipv4_address: 172.39.0.3
    
     
   prowlarr:
@@ -125,12 +131,11 @@ services:
       - ./prowlarr:/config
       - /data:/data
     restart: always
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
-    network_mode: service:gluetun
- 
+    ports:
+       - 9696:9696
+    # networks:
+      # servarrnetwork:
+        # ipv4_address: 172.39.0.9
  
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
@@ -146,9 +151,9 @@ services:
       - /data:/data
     ports:
       - 8989:8989
-    networks:
-      servarrnetwork:
-        ipv4_address: 172.39.0.4
+    # networks:
+      # servarrnetwork:
+        # ipv4_address: 172.39.0.4
 
   radarr:
     image: lscr.io/linuxserver/radarr:latest
@@ -164,9 +169,9 @@ services:
       - /data:/data
     ports:
       - 7878:7878
-    networks:
-      servarrnetwork:
-        ipv4_address: 172.39.0.5
+    # networks:
+      # servarrnetwork:
+        # ipv4_address: 172.39.0.5
 
   jackett:
     container_name: jackett
@@ -180,67 +185,103 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ./jackett:/config
       - /data:/data
-    depends_on:
-      gluetun:
-        condition: service_healthy
-        restart: true
+    # depends_on:
+      # gluetun:
+        # condition: service_healthy
+        # restart: true
    # network_mode: service:gluetun
     ports:
       - 9117:9117      
-    networks:
-     servarrnetwork:
-       ipv4_address: 172.39.0.6
+    # networks:
+     # servarrnetwork:
+       # ipv4_address: 172.39.0.6
        
-  jellyfin:
-    image: jellyfin/jellyfin:latest
-    container_name: jellyfin
-    environment:
-      - PUID=1000 # Replace with your user ID
-      - PGID=1000 # Replace with your group ID
-      - TZ=America/New_York # Replace with your timezone
-    volumes:
-      - ./jellyfin/config:/config # Host path for Jellyfin configuration
-      - /data/jellyfin/cache:/cache # Host path for Jellyfin cache
-      - /data/movies:/data/movies # Host path for movies, read-only
-      - /data/shows:/data/shows # Host path for TV shows, read-only
-      # Add more media library mappings as needed
-    ports:
-      - 8096:8096 # Web interface
-      - 8920:8920 # HTTPS (optional)
-      - 7359:7359/udp # DLNA discovery (optional)
-      - 1900:1900/udp # DLNA advertisement (optional)
-    restart: always
-    # Optional: For hardware transcoding, uncomment and adjust device mapping
-    # devices:
-    #   - /dev/dri:/dev/dri 
+  # jellyfin:
+    # image: jellyfin/jellyfin:latest
+    # container_name: jellyfin
+    # environment:
+      # - PUID=1000 # Replace with your user ID
+      # - PGID=1000 # Replace with your group ID
+      # - TZ=America/New_York # Replace with your timezone
+    # volumes:
+      # - ./jellyfin/config:/config # Host path for Jellyfin configuration
+      # - /data/jellyfin/cache:/cache # Host path for Jellyfin cache
+      # - /data/movies:/data/movies # Host path for movies, read-only
+      # - /data/shows:/data/shows # Host path for TV shows, read-only
+      # # Add more media library mappings as needed
+    # ports:
+      # - 8096:8096 # Web interface
+      # - 8920:8920 # HTTPS (optional)
+      # - 7359:7359/udp # DLNA discovery (optional)
+      # - 1900:1900/udp # DLNA advertisement (optional)
+    # restart: always
 
-  watchtower:
-    container_name: watchtower
-    image: nickfedor/watchtower:latest
-  #  command:
- #     - --cleanup=true
-    environment:
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_POLL_INTERVAL=36000
-      - TZ=America/New_York
-    restart: always
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock 
-    networks:
-      servarrnetwork:
-        ipv4_address: 172.39.0.7    
-
-  portainer:
-    image: portainer/portainer-ce:latest
-    container_name: portainer
-    restart: always
-    ports:
-      - "9000:9000"
-      - "9443:9443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
-volumes:
-  portainer_data:
+  # portainer:
+    # container_name: portainer
+    # image: portainer/portainer-ce:lts
+    # restart: always
+    # volumes:
+      # - /var/run/docker.sock:/var/run/docker.sock
+      # - ./portainer_data:/data
+    # ports:
+      # - 9443:9443
+     # - 8000:8000  # Remove if you do not intend to use Edge Agents
 
 
+
+ 
+  
+  # jellyseerr:
+    # image: ghcr.io/fallenbagel/jellyseerr:latest
+    # init: true
+    # container_name: jellyseerr
+    # environment:
+      # - LOG_LEVEL=debug
+      # - TZ=America/New_York
+    # ports:
+      # - 5055:5055
+    # volumes:
+      # - ./jellyseerr-data:/app/config
+    # healthcheck:
+      # test: wget --no-verbose --tries=1 --spider http://192.168.1.230:5055/api/v1/status || exit 1
+      # start_period: 20s
+      # timeout: 3s
+      # interval: 15s
+      # retries: 3
+    # restart: unless-stopped
+    
+
+
+
+  # cleanuparr:
+    # image: ghcr.io/cleanuparr/cleanuparr:latest
+    # container_name: cleanuparr
+    # restart: unless-stopped
+    # labels:
+      # - deunhealth.restart.on.unhealthy=true   
+    # ports:
+      # - "11011:11011"
+    # volumes:
+      # - ./cleanuparr:/config
+      # # Mount your downloads directory if needed
+      # - /data/Downloads/complete:/downloads
+    # environment:
+      # - PORT=11011
+      # - BASE_PATH=
+      # - PUID=1000
+      # - PGID=1000
+      # - UMASK=022
+      # - TZ=$(TZ)
+    # # Health check configuration
+    # healthcheck:
+      # test: ["CMD", "curl", "-f", "http://localhost:11011/health"]
+      # interval: 30s        # Check every 30 seconds
+      # timeout: 10s         # Allow up to 10 seconds for response
+      # start_period: 30s    # Wait 30 seconds before first check
+      # retries: 3           # Mark unhealthy after 3 consecutive failures 
+
+#volumes:
+  # jellyseerr-data:
+    # external: true
+  # portainer_data:
+    # external: true        
