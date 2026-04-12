@@ -138,8 +138,25 @@ services:
     ports:
       - 9443:9443
      # - 8000:8000  # Remove if you do not intend to use Edge Agents
-
-
+ jellyfin:
+   image: jellyfin/jellyfin:latest
+   container_name: jellyfin
+   environment:
+     - PUID=1000 # Replace with your user ID
+     - PGID=1000 # Replace with your group ID
+     - TZ=America/New_York # Replace with your timezone
+   volumes:
+     - ./jellyfin/config:/config # Host path for Jellyfin configuration
+     - /data/jellyfin/cache:/cache # Host path for Jellyfin cache
+     - /data/movies:/data/movies # Host path for movies, read-only
+     - /data/shows:/data/shows # Host path for TV shows, read-only
+     # Add more media library mappings as needed
+   ports:
+     - 8096:8096 # Web interface
+     - 8920:8920 # HTTPS (optional)
+     - 7359:7359/udp # DLNA discovery (optional)
+     - 1900:1900/udp # DLNA advertisement (optional)
+  restart: always 
   watchtower:
     image: nickfedor/watchtower:latest
     container_name: watchtower
