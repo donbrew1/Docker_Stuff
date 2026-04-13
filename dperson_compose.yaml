@@ -17,7 +17,7 @@ services:
       - 8080:8080        # qBittorrent WebUI (LAN)
       - 6881:6881        # qBittorrent TCP
       - 6881:6881/udp    # qBittorrent UDP
-    restart: unless-stopped
+    restart: always
     labels:
       - deunhealth.restart.on.unhealthy=true  
     
@@ -49,7 +49,7 @@ services:
       - ./qbittorrent:/config
       - /data/Downloads/complete:/data/Downloads/complete
       - /data/Downloads/incomplete:/data/Downloads/incomplete
-    restart: unless-stopped
+    restart: always
     labels:
       - deunhealth.restart.on.unhealthy=true     
 
