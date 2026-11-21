@@ -1,5 +1,21 @@
 
+#For P2P activities, you may use the Finland, Portugal, Germany, or Spain servers.
+#Finland	Helsinki	fi-p2p.jumptoserver.com  37.143.129.237
+#Spain	Barcelona	es-01.jumptoserver.com  45.128.39.115
+#Portugal	Lisbon	pt.jumptoserver.com  185.90.57.146
+#Germany	Frankfurt	es-dbl.jumptoserver.com  45.128.39.117
+#Germany	Hamburg	de-dus1.jumptoserver.com  213.202.223.32
+#Germany	Dusseldorf	de-dus2.jumptoserver.com  89.163.157.125
+#Germany	Frankfurt	de-01.jumptoserver.com  146.70.139.154
+#Finland    Helsinki P2P1   37.143.129.152 
+networks:
 
+  servarrnetwork:
+    name: servarrnetwork
+    ipam:
+      config:
+        - subnet: 172.39.0.0/24
+  
 services:
 
   openvpn:
@@ -17,10 +33,13 @@ services:
       - VPN_TYPE=wireguard
       - WIREGUARD_PRIVATE_KEY=WNDF8IhIBZiSNd8NFsYA593nxFT7n36khE4U3ISNaWY=
       - WIREGUARD_ADDRESSES=172.16.31.131/32
-      - WIREGUARD_ENDPOINT_IP=45.128.39.115
-      - VPN_ENDPOINT_IP=45.128.39.115  # Adds compatibility bypass
+      - WIREGUARD_ENDPOINT_IP=185.90.57.146
+      - VPN_ENDPOINT_IP=185.90.57.146  # Adds compatibility bypass
       - WIREGUARD_ENDPOINT_PORT=51820
-      - WIREGUARD_PUBLIC_KEY=658QxufMbjOTmB61Z7f+c7Rjg7oqWLnepTalqBERjF0=    
+      - WIREGUARD_PUBLIC_KEY=658QxufMbjOTmB61Z7f+c7Rjg7oqWLnepTalqBERjF0= 
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.2      
     ports:
       - 8080:8080        # qBittorrent WebUI
       - 6881:6881        # qBittorrent TCP
@@ -58,13 +77,15 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
+      - UMASK=0000
       - TZ=America/New_York
       - WEBUI_PORT=8080
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      #- ./qbittorrent:/config
       - ./qbittorrent/qBittorrent:/config
-      - /data/Downloads/complete:/data/Downloads/complete
-      - /data/Downloads/incomplete:/data/Downloads/incomplete
+      #- ./qbittorrent/qBittorrent/qBittorrent:/config
+      - /data/Downloads:/data/Downloads
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f https://www.google.com || exit 1"]
@@ -87,7 +108,22 @@ services:
       - ./prowlarr:/config
     ports:
       - 9696:9696
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.5      
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8 
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f https://www.google.com || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    labels:
+      - deunhealth.restart.on.unhealthy=true
+    
 
   radarr:
     image: lscr.io/linuxserver/radarr:latest
@@ -99,11 +135,26 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./radarr:/config
-      - /data/movies:/data/movies
-      - /data/Downloads/complete:/data/Downloads/complete
+      - /data:/data
+      - /data/backup/radarr
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.6      
     ports:
       - 7878:7878
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8 
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f https://www.google.com || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    labels:
+      - deunhealth.restart.on.unhealthy=true
     restart: unless-stopped
+    
 
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
@@ -115,11 +166,26 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./sonarr:/config
-      - /data/shows:/data/shows
-      - /data/Downloads/complete:/data/Downloads/complete
+      - /data:/data
+      - /data/backup/sonarr
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.4     
     ports:
       - 8989:8989
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8 
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f https://www.google.com || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    labels:
+      - deunhealth.restart.on.unhealthy=true
+    
 
   jackett:
     image: lscr.io/linuxserver/jackett:latest
@@ -132,10 +198,39 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ./jackett:/config
       - /data:/data
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.7      
     ports:
       - 9117:9117
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8 
     restart: unless-stopped
-
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f https://www.google.com || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    labels:
+      - deunhealth.restart.on.unhealthy=true
+      
+  # byparr:
+    # image: ghcr.io/thephaseless/byparr:latest
+    # container_name: byparr
+    # restart: unless-stopped
+    # ports:
+      # - "8191:8191"
+    # environment:
+      # - LOG_LEVEL=INFO
+      # - TZ=America/New_York
+      # - BROWSER_TIMEZONE=America/New_York
+      # - BROWSER_LOCALE=en-US     
+    # shm_size: "1gb"
+    # tmpfs:
+      # - /tmp:exec,mode=1777,size=1G
+      
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
@@ -143,7 +238,23 @@ services:
       - LOG_LEVEL=info
     ports:
       - 8191:8191
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.8      
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8  
     restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f https://www.google.com || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    labels:
+      - deunhealth.restart.on.unhealthy=true
+   
 
   portainer:
     container_name: portainer
@@ -153,6 +264,9 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=America/New_York
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.9     
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
@@ -165,13 +279,16 @@ services:
     container_name: jellyfin
     environment:
       - PUID=1000
-      - PGID=1000
+      - PGID=1000 
       - TZ=America/New_York
     volumes:
       - ./jellyfin/config:/config
       - /data/jellyfin/cache:/cache
       - /data/movies:/data/movies
       - /data/shows:/data/shows
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.10      
     ports:
       - 8096:8096
       - 8920:8920
@@ -184,11 +301,10 @@ services:
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_EPHEMERAL_SELF_UPDATE=true
     command: --cleanup --schedule "0 0 4 * * *"
     restart: unless-stopped
-
-  # speedtest:
-    # image: openspeedtest/openspeedtest:latest
-    # container_name: openspeedtest
-    # network_mode: "service:openvpn"
-    # restart: unless-stopped
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.11t: unless-stopped
