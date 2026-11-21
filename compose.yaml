@@ -27,6 +27,7 @@ services:
       - /dev/net/tun
     volumes:
       - ./gluetun:/gluetun
+      - /etc/localtime:/etc/localtime:ro     
     environment:
       - TZ=America/New_York
       - VPN_SERVICE_PROVIDER=custom
@@ -66,7 +67,8 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-
+      - /etc/localtime:/etc/localtime:ro
+      
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
@@ -245,7 +247,8 @@ services:
       - 1.1.1.1
       - 8.8.8.8  
     restart: unless-stopped
-
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -f https://www.google.com || exit 1"]
       interval: 30s
@@ -282,6 +285,7 @@ services:
       - PGID=1000 
       - TZ=America/New_York
     volumes:
+      - /etc/localtime:/etc/localtime:ro   
       - ./jellyfin/config:/config
       - /data/jellyfin/cache:/cache
       - /data/movies:/data/movies
@@ -301,10 +305,11 @@ services:
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/localtime:/etc/localtime:ro  
     environment:
       - WATCHTOWER_EPHEMERAL_SELF_UPDATE=true
     command: --cleanup --schedule "0 0 4 * * *"
     restart: unless-stopped
     networks:
       servarrnetwork:
-        ipv4_address: 172.39.0.11t: unless-stopped
+        ipv4_address: 172.39.0.11  ipv4_address: 172.39.0.11t: unless-stopped
