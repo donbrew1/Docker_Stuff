@@ -1,0 +1,63 @@
+services:
+  motioneye:
+    container_name: motioneye
+    image: dontobi/motioneye.rpi:latest # Use a multi-arch or RPi-specific image
+    restart: always
+    ports:
+      - "8765:8765" # MotionEye web interface
+      - "9081:9081" # Optional: MotionEye stream port (adjust if needed)
+      - "9082:9082"
+      - "9083:9083"
+      - "9084:9084"
+      - "9085:9085"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./motioneye_data:/config # Persistent config storage
+      - ./motioneye_data:/var/lib/motioneye # Persistent data storage (recordings, etc.)
+    environment:
+      - TZ=America/New_York # Replace with your actual timezone, e.g., Europe/Berlin
+      - PUID=1000 # Optional: User ID for file permissions
+      - PGID=1000 # Optional: Group ID for file permissions
+ 
+  agent:
+    container_name: agent
+    image: portainer/agent:latest
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+      - /etc/localtime:/etc/localtime:ro     
+    ports:
+      - "9001:9001"  
+      
+  watchtower:
+    container_name: watchtower
+    image: nickfedor/watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=America/New_York
+      - WATCHTOWER_CLEANUP=true                                        
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_POLL_INTERVAL=36000                  
+      #- WATCHTOWER_SCHEDULE=0 0 9 * * *
+      #- WATCHTOWER_DEBUG=true  
+
+  # nodered:
+    # container_name: nodered
+    # image: nodered/node-red:latest
+    # ports:
+      # - "1880:1880"
+    # volumes:
+      # - ./data:/data   
+      # - node-red-data:/data
+      # - /etc/localtime:/etc/localtime:ro
+    # environment:
+      # - TZ=America/New_York # Replace with your timezone
+    # restart: unless-stopped
+# volumes:
+  # node-red-data:   
+
