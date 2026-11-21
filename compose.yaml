@@ -1,0 +1,70 @@
+
+
+services:
+  # byparr:
+    # image: ghcr.io/thephaseless/byparr:latest
+    # container_name: byparr
+    # restart: unless-stopped
+    # ports:
+      # - "8191:8191"
+    # environment:
+      # - LOG_LEVEL=INFO
+      
+  # byparr:
+    # image: ghcr.io/thephaseless/byparr:latest
+    # container_name: byparr
+    # restart: unless-stopped
+    # shm_size: "1gb"
+    # tmpfs:
+      # - /tmp:exec,mode=1777,size=1G
+    # ports:
+      # - "8191:8191"
+    # environment:
+      # - LOG_LEVEL=INFO
+      # - BROWSER_TIMEZONE=America/New_York      
+ 
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+       - LOG_LEVEL=info
+    ports:
+      - 8191:8191
+     
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8  
+    restart: unless-stopped
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f https://www.google.com || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    labels:
+      - deunhealth.restart.on.unhealthy=true
+   
+  agent:
+    container_name: agent
+    image: portainer/agent:latest
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+      - /etc/localtime:/etc/localtime:ro     
+    ports:
+      - "9001:9001"  
+      
+  esp-update-server:
+    image: kstobbe/esp-update-server:latest
+    container_name: esp-update-server
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - /opt/esp-update-server/bin:/esp-update-server/bin
+      - /etc/localtime:/etc/localtime:ro      
+    environment:
+      - PORT=5000        
